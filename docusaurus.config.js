@@ -23,12 +23,23 @@ const config = {
   trailingSlash: false,
 
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
 
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
   },
+
+  themes: [
+    [
+      '@easyops-cn/docusaurus-search-local',
+      /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
+      ({
+        hashed: true,
+        docsRouteBasePath: '/',
+        indexBlog: false,
+      }),
+    ],
+  ],
 
   presets: [
     [
@@ -57,6 +68,10 @@ const config = {
       navbar: {
         title: 'ContextPilot',
         items: [
+          {
+            type: 'search',
+            position: 'left',
+          },
           {
             href: 'https://github.com/EfficientContext/ContextPilot',
             label: 'GitHub',
