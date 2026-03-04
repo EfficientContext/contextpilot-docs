@@ -226,6 +226,9 @@ reordered = build["reordered_contexts"]
 # e.g. [[0, 1, 2], [0, 1, 5], [0, 4, 3]]
 
 # --- Step B: Construct prompts using reordered doc order ---
+# The original order reflects retrieval relevance (rank 0 = most relevant).
+# ContextPilot reorders for cache efficiency, so we add an importance hint
+# telling the LLM which docs matter most.
 def make_prompt(query, reordered_ids, original_ids):
     docs = "\n".join(f"[Doc {d}] {documents[d]}" for d in reordered_ids)
     ranking = " > ".join(f"[Doc {d}]" for d in original_ids)
@@ -235,6 +238,8 @@ def make_prompt(query, reordered_ids, original_ids):
         f"Prioritize higher-ranked documents. Question: {query}"
     )
 
+# contexts[0] was [0, 1, 2] (original retrieval order)
+# reordered[0] might be [0, 1, 2] (same) or reshuffled for prefix sharing
 prompt = make_prompt("How does photosynthesis work?",
                      reordered_ids=reordered[0],
                      original_ids=contexts[0])
@@ -263,6 +268,7 @@ build2 = requests.post(f"{CP}/reorder", json={
 print(build2["mode"])           # "incremental" (index already exists)
 print(build2["matched_count"])  # docs already in the index
 
+# Unified response key
 reordered2 = build2["reordered_contexts"]
 prompt2 = make_prompt("How do plants produce and consume energy?",
                       reordered_ids=reordered2[0],
@@ -310,6 +316,9 @@ Without deduplication, the prompt would repeat docs 0, 1, and 5 — wasting toke
 Instead of integer doc IDs, you can send **document text directly** as strings. ContextPilot automatically maps strings to internal IDs:
 
 ```python
+# Option 1: Integer doc IDs (shown in previous examples)
+contexts_int = [[0, 1, 2], [0, 1, 5], [3, 4, 0]]
+
 # Option 2: String documents (ContextPilot handles ID mapping internally)
 contexts_str = [
     [
@@ -322,10 +331,24 @@ contexts_str = [
         "Chlorophyll absorbs light in blue and red wavelengths.",
         "Stomata regulate gas exchange in leaves."
     ],
+    [
+        "Mitochondria generate ATP through respiration.",
+        "Plant cells contain both chloroplasts and mitochondria.",
+        "Photosynthesis converts sunlight into chemical energy."  # shared doc
+    ]
 ]
 
+# Build with string contexts (works exactly the same!)
 build_str = requests.post(f"{CP}/reorder", json={"contexts": contexts_str}).json()
 print(build_str["input_type"])  # "string" (auto-detected)
+
+# Server automatically:
+# 1. Maps identical strings to the same internal ID
+# 2. Reorders for prefix sharing (just like with integers)
+# 3. Returns request_ids for inference tracking
+
+# Use the reordered contexts for prompts (same workflow as integers)
+reordered_str = build_str["reordered_contexts"]
 ```
 
 **When to use strings vs integers:**
@@ -363,3 +386,4 @@ requests.post(f"{CP}/reset", json={})  # clear index
 
 - [Online Usage Guide](../guides/online_usage) — Stateless vs live mode, inference engine integration
 - [mem0 Integration](../guides/mem0) — Use with long-term memory
+- [Examples](https://github.com/EfficientContext/ContextPilot/tree/main/examples) — Python examples and benchmarks

@@ -74,6 +74,8 @@ print(f"Overlapping: {r['overlapping_docs']}")  # [4, 3] — already sent
 print(f"New docs:    {r['new_docs']}")          # [2]    — send this
 print(f"Hints:       {r['reference_hints']}")   # hints for the LLM
 
+# Build prompt with only new docs + reference hints for overlapping ones
+
 # ═══════════════════════════════════════════════════════════
 # Turn 3+: Continue the chain (history accumulates)
 # ═══════════════════════════════════════════════════════════

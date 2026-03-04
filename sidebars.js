@@ -21,6 +21,7 @@ const sidebars = {
       items: [
         'guides/offline_usage',
         'guides/online_usage',
+        'guides/mac_llama_cpp',
         'guides/multi_turn',
         'guides/pageindex',
         'guides/mem0',
