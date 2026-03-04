@@ -1,0 +1,365 @@
+---
+id: quickstart
+title: Quick Start
+sidebar_label: Quick Start
+---
+
+# Quick Start
+
+Get ContextPilot running in 5 minutes.
+
+## Prerequisites
+
+- ContextPilot installed ([Installation Guide](installation))
+- An OpenAI-compatible inference engine (e.g. [SGLang](https://github.com/sgl-project/sglang), [vLLM](https://github.com/vllm-project/vllm))
+- For eviction sync: set `CONTEXTPILOT_INDEX_URL` when launching your engine (hooks activate automatically)
+
+## Using `cp.optimize()` (Simplest)
+
+The fastest way to integrate ContextPilot — create a `ContextPilot` instance and call `.optimize()` to handle context reordering and prompt assembly automatically.
+
+### Online: Multi-Turn Inference
+
+```python
+from openai import OpenAI
+import contextpilot as cp
+
+client = OpenAI(base_url="http://localhost:30000/v1", api_key="EMPTY")
+cp_instance = cp.ContextPilot(use_gpu=False)
+
+# Per-turn contexts — partially overlapping across turns
+turn_contexts = [
+    ["Transformers use self-attention", "GPT is based on transformers", "BERT is bidirectional"],
+    ["RNNs use hidden states", "GPT is based on transformers", "LSTMs solve vanishing gradients"],
+    ["Attention computes QKV", "Transformers use self-attention", "GPT is based on transformers"],
+]
+queries = ["What are transformers?", "How do RNNs compare?", "Explain attention in detail."]
+
+for turn_idx, (query, contexts) in enumerate(zip(queries, turn_contexts)):
+    messages = cp_instance.optimize(contexts, query, conversation_id="user_42")
+    # Turn 2: "GPT is based on transformers" moves to prefix (cache hit)
+    # Turn 3: "Transformers …", "GPT …" both move to prefix
+
+    response = client.chat.completions.create(
+        model="Qwen/Qwen3-4B",
+        messages=messages,
+    )
+    print(f"[Turn {turn_idx+1}] Q: {query}")
+    print(f"A: {response.choices[0].message.content}\n")
+```
+
+### Offline: Batch Inference
+
+```python
+import asyncio
+import openai
+import contextpilot as cp
+
+BASE_URL = "http://localhost:30000/v1"
+cp_instance = cp.ContextPilot(use_gpu=False)
+
+queries = ["What is AI?", "Explain neural networks", "What is deep learning?"]
+all_contexts = [
+    ["Doc about AI", "Doc about ML", "Doc about computing"],
+    ["Doc about neural nets", "Doc about deep learning"],
+    ["Doc about ML", "Doc about AI", "Doc about deep learning basics"],
+]
+
+messages_batch, order = cp_instance.optimize_batch(all_contexts, queries)
+
+async def generate_all():
+    ac = openai.AsyncOpenAI(base_url=BASE_URL, api_key="EMPTY")
+    return await asyncio.gather(*[ac.chat.completions.create(
+        model="Qwen/Qwen3-4B", messages=m
+    ) for m in messages_batch])
+
+for resp, idx in zip(asyncio.run(generate_all()), order):
+    print(f"Q: {queries[idx]}\nA: {resp.choices[0].message.content}\n")
+```
+
+## Advanced Usage
+
+### Context Ordering
+
+`cp.reorder()` places **shared blocks at the beginning** of the prompt so consecutive requests share the longest possible common prefix, enabling KV-cache reuse. To preserve answer quality, ContextPilot injects an **importance ranking** so the model still prioritizes blocks in their original relevance order.
+
+### Context Deduplication
+
+In multi-turn conversations, successive turns frequently gather **many of the same context blocks**, wasting tokens and compute.
+
+`cp.deduplicate()` compares the current turn's context blocks against prior turns (tracked by `conversation_id`). Duplicate blocks are replaced with lightweight **reference hints** (e.g., *"See Doc 3 from previous context"*); only genuinely new blocks are sent in full — typically reducing duplicated tokens by **30-60%**. See [automatic context deduplication](../guides/multi_turn).
+
+### Using `cp.reorder()` with Custom Prompts
+
+If you need full control over prompt construction (e.g., custom templates, manual importance ranking), use `cp.reorder()` directly. It returns the reordered contexts and execution order — you build the prompts yourself.
+
+```python
+from openai import OpenAI
+import contextpilot as cp
+
+client = OpenAI(base_url="http://localhost:30000/v1", api_key="EMPTY")
+cp_instance = cp.ContextPilot(use_gpu=False)
+
+turn_contexts = [
+    ["Transformers use self-attention", "GPT is based on transformers", "BERT is bidirectional"],
+    ["RNNs use hidden states", "GPT is based on transformers", "LSTMs solve vanishing gradients"],
+    ["Attention computes QKV", "Transformers use self-attention", "GPT is based on transformers"],
+]
+queries = ["What are transformers?", "How do RNNs compare?", "Explain attention in detail."]
+
+for turn_idx, (query, blocks) in enumerate(zip(queries, turn_contexts)):
+    reordered, indices = cp_instance.reorder(blocks)  # reorder for prefix sharing
+    ctx = reordered[0]
+
+    # Build prompt manually with reordered docs + importance ranking
+    docs_section = "\n".join(f"[{i+1}] {doc}" for i, doc in enumerate(ctx))
+    pos = {doc: i + 1 for i, doc in enumerate(ctx)}
+    importance_ranking = ">".join(str(pos[doc]) for doc in blocks if doc in pos)
+
+    response = client.chat.completions.create(
+        model="Qwen/Qwen3-4B",
+        messages=[
+            {"role": "system", "content": (
+                f"Answer the question based on the provided documents.\n\n"
+                f"<documents>\n{docs_section}\n</documents>\n\n"
+                f"Read the documents in this importance ranking: {importance_ranking}\n"
+                f"Prioritize information from higher-ranked documents."
+            )},
+            {"role": "user", "content": query},
+        ],
+    )
+    print(f"[Turn {turn_idx+1}] Q: {query}")
+    print(f"A: {response.choices[0].message.content}\n")
+```
+
+### Advanced: `cp.deduplicate()` for Multi-Turn Deduplication
+
+In multi-turn conversations, `cp.deduplicate()` removes already-seen documents and returns lightweight reference hints — typically reducing duplicated tokens by 30-60%.
+
+```python
+engine = cp.ContextPilot(use_gpu=False)
+
+# Turn 1 — reorder and register docs
+turn1_docs = [["Doc A", "Doc B", "Doc C"]]
+reordered, indices = engine.reorder(turn1_docs, conversation_id="user_42")
+
+# Turn 2 — deduplicate against Turn 1
+turn2_docs = [["Doc A", "Doc B", "Doc D"]]
+results = engine.deduplicate(turn2_docs, conversation_id="user_42")
+
+r = results[0]
+print(r["new_docs"])           # ["Doc D"] — only this is new
+print(r["overlapping_docs"])   # ["Doc A", "Doc B"] — already sent
+print(r["reference_hints"])    # hints like "Please refer to [Doc ...]..."
+```
+
+For more details, see the [multi-turn deduplication guide](../guides/multi_turn) and the [API reference](../reference/api).
+
+---
+
+## Using the HTTP Server
+
+For distributed deployments or language-agnostic integration, ContextPilot can also run as an HTTP server.
+
+## Step 1: Start the Inference Engine
+
+ContextPilot works with any OpenAI-compatible inference engine. Pick one:
+
+**SGLang:**
+```bash
+python -m sglang.launch_server \
+    --model-path Qwen/Qwen3-4B \
+    --port 30000 \
+    --schedule-policy lpm
+```
+
+**vLLM:**
+```bash
+python -m vllm.entrypoints.openai.api_server \
+    --model Qwen/Qwen3-4B \
+    --port 30000 \
+    --enable-prefix-caching
+```
+
+> **Tip:** For eviction sync, prefix with `CONTEXTPILOT_INDEX_URL=http://localhost:8765`. This lets the inference engine notify ContextPilot when KV cache entries are evicted.
+
+## Step 2: Start ContextPilot
+
+```bash
+python -m contextpilot.server.http_server \
+    --port 8765 \
+    --infer-api-url http://localhost:30000
+```
+
+## Step 3: Build & Infer
+
+```python
+import requests
+
+CP = "http://localhost:8765"
+
+# Your retriever returns doc IDs per query and a shared text mapping
+documents = {
+    0: "Photosynthesis converts sunlight into chemical energy in plants.",
+    1: "Chlorophyll absorbs light primarily in blue and red wavelengths.",
+    2: "The Calvin cycle fixes CO2 into glucose using ATP and NADPH.",
+    3: "Mitochondria generate ATP through cellular respiration.",
+    4: "Plant cells contain both chloroplasts and mitochondria.",
+    5: "Stomata regulate gas exchange and water loss in leaves.",
+}
+
+# Each context is the list of doc IDs retrieved for one query.
+# Overlapping IDs (e.g. doc 0, 1) form shared prefixes that the inference engine can cache.
+contexts = [
+    [0, 1, 2],  # query about photosynthesis
+    [0, 1, 5],  # query about leaf structure
+    [3, 4, 0],  # query about cell energy
+]
+
+# --- Step A: Build the index ---
+build = requests.post(f"{CP}/reorder", json={"contexts": contexts}).json()
+print(build["mode"])         # "initial" (first build) or "incremental" (subsequent)
+print(build["request_ids"])  # one ID per context
+
+# ContextPilot reorders contexts so shared docs come first → cache reuse
+reordered = build["reordered_contexts"]
+# e.g. [[0, 1, 2], [0, 1, 5], [0, 4, 3]]
+
+# --- Step B: Construct prompts using reordered doc order ---
+def make_prompt(query, reordered_ids, original_ids):
+    docs = "\n".join(f"[Doc {d}] {documents[d]}" for d in reordered_ids)
+    ranking = " > ".join(f"[Doc {d}]" for d in original_ids)
+    return (
+        f"Documents:\n{docs}\n\n"
+        f"Importance ranking: {ranking}\n\n"
+        f"Prioritize higher-ranked documents. Question: {query}"
+    )
+
+prompt = make_prompt("How does photosynthesis work?",
+                     reordered_ids=reordered[0],
+                     original_ids=contexts[0])
+
+# --- Step C: Run inference ---
+resp = requests.post(f"{CP}/v1/completions", json={
+    "prompt": prompt,
+    "request_id": build["request_ids"][0],
+    "max_tokens": 128,
+}).json()
+
+print(resp["choices"][0]["text"])
+```
+
+Key idea: ContextPilot reorders the doc IDs so that shared documents (doc 0, 1) appear at the beginning of multiple contexts. The shared prefix is computed once and reused from the inference engine's KV cache.
+
+## Step 4: Incremental Update
+
+Just call `/reorder` again — since the index already exists, ContextPilot automatically searches it and reorders new contexts to reuse cached prefixes:
+
+```python
+build2 = requests.post(f"{CP}/reorder", json={
+    "contexts": [[0, 1, 3]],  # new query reuses docs 0, 1
+}).json()
+
+print(build2["mode"])           # "incremental" (index already exists)
+print(build2["matched_count"])  # docs already in the index
+
+reordered2 = build2["reordered_contexts"]
+prompt2 = make_prompt("How do plants produce and consume energy?",
+                      reordered_ids=reordered2[0],
+                      original_ids=[0, 1, 3])
+
+resp2 = requests.post(f"{CP}/v1/completions", json={
+    "prompt": prompt2,
+    "request_id": build2["request_ids"][0],
+    "max_tokens": 128,
+}).json()
+```
+
+Docs 0 and 1 are already cached, reusing their KV entries instead of recomputing.
+
+## Step 5: Deduplication (Multi-Turn)
+
+In multi-turn conversations, the retriever often returns the same docs again. Use `.deduplicate()` to strip docs already sent in a previous turn.
+
+> **`conversation_id` is required** — it isolates each user's document history so concurrent sessions never cross-contaminate.
+
+```python
+import contextpilot as cp
+
+engine = cp.ContextPilot(use_gpu=False)
+
+# Turn 1 — reorder and register docs under a conversation
+turn1_docs = [[0, 1, 2], [0, 1, 5], [3, 4, 0]]
+reordered, indices = engine.reorder(turn1_docs, conversation_id="user_42")
+
+# Turn 2 — retriever returns docs 0, 1, 5 again, plus new doc 6
+turn2_docs = [[0, 1, 5, 6]]
+results = engine.deduplicate(turn2_docs, conversation_id="user_42")
+
+r = results[0]
+print(r["overlapping_docs"])   # [0, 1, 5] — already sent in turn 1
+print(r["new_docs"])           # [6]       — only this is new
+print(r["deduplicated_docs"])  # [6]       — use this for the prompt
+print(r["reference_hints"])    # hints like "Please refer to [Doc 0]..."
+```
+
+Without deduplication, the prompt would repeat docs 0, 1, and 5 — wasting tokens. With it, only doc 6 is sent in full, plus short reference hints for the repeated docs.
+
+## Step 6: String Contexts (Alternative)
+
+Instead of integer doc IDs, you can send **document text directly** as strings. ContextPilot automatically maps strings to internal IDs:
+
+```python
+# Option 2: String documents (ContextPilot handles ID mapping internally)
+contexts_str = [
+    [
+        "Photosynthesis converts sunlight into chemical energy.",
+        "Chlorophyll absorbs light in blue and red wavelengths.",
+        "The Calvin cycle fixes CO2 into glucose."
+    ],
+    [
+        "Photosynthesis converts sunlight into chemical energy.",  # same text = reused
+        "Chlorophyll absorbs light in blue and red wavelengths.",
+        "Stomata regulate gas exchange in leaves."
+    ],
+]
+
+build_str = requests.post(f"{CP}/reorder", json={"contexts": contexts_str}).json()
+print(build_str["input_type"])  # "string" (auto-detected)
+```
+
+**When to use strings vs integers:**
+- **Integers**: When you have a pre-indexed corpus with doc IDs
+- **Strings**: When processing dynamic content or documents not in a fixed corpus
+- **Both work identically** — choose based on your data source
+
+## Step 7: Stats & Reset
+
+```python
+stats = requests.get(f"{CP}/stats").json()
+print(stats["index_stats"])
+
+requests.post(f"{CP}/reset", json={})  # clear index
+```
+
+## Architecture
+
+```
+┌─────────┐                     ┌──────────────┐                ┌─────────────┐
+│  Your   │  1. POST /reorder   │              │                │  Inference  │
+│  App    │────────────────────→│ ContextPilot │                │  Engine     │
+│         │  ←── request_ids ── │ :8765        │                │  :30000     │
+│         │                     │              │                │             │
+│         │  2. /v1/completions │              │   /v1/compl.   │             │
+│         │────────────────────→│              │──────────────→ │             │
+│         │  ←── response ──────│              │ ←── response ──│             │
+└─────────┘                     └──────────────┘                └─────────────┘
+```
+
+1. **Build** — send contexts, get back reordered `request_ids`
+2. **Infer** — send prompt + `request_id`, ContextPilot proxies to the inference engine
+
+## Next Steps
+
+- [Online Usage Guide](../guides/online_usage) — Stateless vs live mode, inference engine integration
+- [mem0 Integration](../guides/mem0) — Use with long-term memory
