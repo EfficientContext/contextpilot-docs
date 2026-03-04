@@ -56,17 +56,7 @@ const config = {
       image: 'img/docusaurus-social-card.jpg',
       navbar: {
         title: 'ContextPilot',
-        logo: {
-          alt: 'ContextPilot Logo',
-          src: 'img/logo.svg',
-        },
         items: [
-          {
-            type: 'docSidebar',
-            sidebarId: 'tutorialSidebar',
-            position: 'left',
-            label: 'Docs',
-          },
           {
             href: 'https://github.com/EfficientContext/ContextPilot',
             label: 'GitHub',
@@ -78,7 +68,7 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://arxiv.org/abs/2501.09732',
+            href: 'https://arxiv.org/abs/2511.03475',
             label: 'Paper',
             position: 'right',
           },
@@ -122,7 +112,7 @@ const config = {
               },
               {
                 label: 'arXiv Paper',
-                href: 'https://arxiv.org/abs/2501.09732',
+                href: 'https://arxiv.org/abs/2511.03475',
               },
             ],
           },

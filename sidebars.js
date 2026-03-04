@@ -7,6 +7,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Getting Started',
+      collapsed: false,
       items: [
         'getting_started/installation',
         'getting_started/quickstart',
@@ -15,6 +16,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Guides',
+      collapsed: false,
       items: [
         'guides/offline_usage',
         'guides/online_usage',
@@ -26,7 +28,9 @@ const sidebars = {
     {
       type: 'category',
       label: 'Reference',
+      collapsed: false,
       items: [
+        'reference/primitives',
         'reference/api',
         'reference/benchmarks',
       ],

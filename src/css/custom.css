@@ -28,3 +28,35 @@
   --ifm-color-primary-lightest: #dbeafe;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+/* Sidebar logo above navigation categories */
+.sidebar-with-logo {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebar-logo-container {
+  display: flex;
+  align-items: center;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.sidebar-brand-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ifm-color-emphasis-900);
+  letter-spacing: -0.02em;
+}
+
+/* Vertical divider between navbar left (logo) and right (links) */
+@media (min-width: 997px) {
+  .navbar__items--right {
+    border-left: 1px solid var(--ifm-color-emphasis-300);
+    padding-left: 12px;
+    margin-left: 12px;
+  }
+}
