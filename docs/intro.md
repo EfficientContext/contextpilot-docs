@@ -6,7 +6,7 @@ slug: /
 ---
 
 <div style={{textAlign: 'center', margin: '1.5rem 0 2rem'}}>
-  <img src="/img/contextpilot_logo.png" alt="ContextPilot" style={{width: '100%', maxWidth: '480px'}} />
+  <img src={require('@site/static/img/contextpilot_logo.png').default} alt="ContextPilot" style={{width: '100%', maxWidth: '480px'}} />
 </div>
 
 # ContextPilot
