@@ -13,13 +13,13 @@ const config = {
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
-  url: 'https://contextpilot.github.io',
+  url: 'https://efficientcontext.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
-  baseUrl: '/',
+  baseUrl: '/contextpilot-docs/',
 
   // GitHub pages deployment config.
-  organizationName: 'contextpilot',
-  projectName: 'contextpilot.github.io',
+  organizationName: 'EfficientContext',
+  projectName: 'contextpilot-docs',
   trailingSlash: false,
 
   onBrokenLinks: 'warn',
