@@ -52,6 +52,11 @@
   letter-spacing: -0.02em;
 }
 
+/* Remove extra top spacing in sidebar when wrapped */
+.sidebar-with-logo .menu {
+  padding-top: 0;
+}
+
 /* Vertical divider between navbar left (logo) and right (links) */
 @media (min-width: 997px) {
   .navbar__items--right {
