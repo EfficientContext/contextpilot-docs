@@ -1,4 +1,4 @@
-# contextpilot.github.io
+# Contextpilot Documentation
 The official documentation website for ContextPilot.
 
 ## Local Development
