@@ -1,7 +1,7 @@
 ---
 id: offline_usage
-title: Offline Usage
-sidebar_label: Offline Usage
+title: "Offline Usage"
+sidebar_label: "Offline Usage"
 ---
 
 # Offline Usage

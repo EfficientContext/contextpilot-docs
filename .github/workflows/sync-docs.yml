@@ -1,0 +1,31 @@
+name: Sync docs from ContextPilot
+
+on:
+  repository_dispatch:
+    types: [docs-updated]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync & commit docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run sync script
+        run: bash scripts/sync_docs.sh
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/ static/img/
+          if git diff --cached --quiet; then
+            echo "No doc changes to commit."
+          else
+            git commit -m "docs: auto-sync from ContextPilot"
+            git push
+          fi

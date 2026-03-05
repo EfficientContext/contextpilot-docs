@@ -1,7 +1,7 @@
 ---
 id: pageindex
-title: PageIndex Integration
-sidebar_label: PageIndex Integration
+title: "PageIndex Integration"
+sidebar_label: "PageIndex Integration"
 ---
 
 # PageIndex Integration

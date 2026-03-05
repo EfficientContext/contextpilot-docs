@@ -1,7 +1,7 @@
 ---
 id: quickstart
-title: Quick Start
-sidebar_label: Quick Start
+title: "Quick Start"
+sidebar_label: "Quick Start"
 ---
 
 # Quick Start
@@ -386,4 +386,4 @@ requests.post(f"{CP}/reset", json={})  # clear index
 
 - [Online Usage Guide](../guides/online_usage) — Stateless vs live mode, inference engine integration
 - [mem0 Integration](../guides/mem0) — Use with long-term memory
-- [Examples](https://github.com/EfficientContext/ContextPilot/tree/main/examples) — Python examples and benchmarks
+- [Examples](https://github.com/EfficientContext/ContextPilot/tree/main/examples/) — Python examples and benchmarks

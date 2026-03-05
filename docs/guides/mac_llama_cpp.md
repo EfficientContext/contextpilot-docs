@@ -1,7 +1,7 @@
 ---
 id: mac_llama_cpp
-title: Mac + llama.cpp (Apple Silicon)
-sidebar_label: Mac + llama.cpp
+title: "Mac + llama.cpp (Apple Silicon)"
+sidebar_label: "Mac + llama.cpp (Apple Silicon)"
 ---
 
 # Mac + llama.cpp (Apple Silicon)
@@ -25,7 +25,7 @@ llama-server  :8889   (Metal, --cache-reuse 256, native hook injected)
       │  llama_memory_seq_rm() intercepted via DYLD_INSERT_LIBRARIES
       │  POST /evict fires instantly on cache clear (zero-latency)
       ↓
- ContextPilot server  :8765   ← reorders contexts for max prefix reuse
+ContextPilot server  :8765   ← reorders contexts for max prefix reuse
       ↑
 your application
 ```

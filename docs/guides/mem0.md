@@ -1,7 +1,7 @@
 ---
 id: mem0
-title: mem0 Integration
-sidebar_label: mem0 Integration
+title: "mem0 + ContextPilot LoCoMo Benchmark"
+sidebar_label: "mem0 + ContextPilot LoCoMo Benchmark"
 ---
 
 # mem0 + ContextPilot LoCoMo Benchmark
@@ -9,9 +9,9 @@ sidebar_label: mem0 Integration
 This example measures TTFT and answer accuracy (token-F1, LLM judge) with and without ContextPilot context reordering, using mem0 as the memory backend and an OpenAI-compatible inference engine (SGLang or vLLM).
 
 * [Mem0](https://github.com/mem0ai/mem0) is an intelligent memory layer that facilitates memory storage and retrieval for agents.
-* [Locomo](https://github.com/snap-research/locomo) is a long conversation benchmark used to test memory retrieval.
+* [Locomo](https://github.com/snap-research/locomo) is a long conversation benchmark used to test memory retrieval. 
 
-![mem0 LoCoMo diagram](/img/mem0_locomo.png)
+![mem0_locomo_diagram](/img/mem0_locomo.png)
 
 ## Setup
 

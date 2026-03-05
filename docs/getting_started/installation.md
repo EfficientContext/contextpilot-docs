@@ -1,7 +1,7 @@
 ---
 id: installation
-title: Installation
-sidebar_label: Installation
+title: "Installation"
+sidebar_label: "Installation"
 ---
 
 # Installation

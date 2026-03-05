@@ -1,7 +1,7 @@
 ---
 id: online_usage
-title: Online Usage
-sidebar_label: Online Usage
+title: "Online Usage"
+sidebar_label: "Online Usage"
 ---
 
 # Online Usage
@@ -77,14 +77,18 @@ response = requests.post("http://localhost:8765/reorder", json={
 })
 result = response.json()
 
+# Use the reordered contexts and execution order
 scheduled_contexts = result['reordered_contexts']
 scheduled_order = result['original_indices']
 print(f"Optimal order: {scheduled_order}")  # e.g., [0, 2, 1, 3]
 
 # Build prompts using the reordered context blocks
+# scheduled_contexts[i] corresponds to original query at scheduled_order[i]
 for i, reordered_blocks in enumerate(scheduled_contexts):
     original_query_idx = scheduled_order[i]
+    # Build prompt with reordered blocks for maximum prefix sharing
     # prompt = build_prompt(queries[original_query_idx], reordered_blocks)
+    # response = inference_client.generate(prompt)
     pass
 
 # After inference, map results back to original order
@@ -131,7 +135,7 @@ Stateful mode maintains a **live index** synchronized with the inference engine'
                              (engine notifies on KV cache eviction)
 ```
 
-### Inference Engine Integration {#inference-engine-integration}
+### Inference Engine Integration
 
 Stateful mode requires the inference engine to notify ContextPilot when KV-cache entries are evicted. **No engine patches are needed** — ContextPilot automatically hooks into SGLang at runtime via a `.pth` import hook.
 
@@ -334,7 +338,16 @@ print(f"Cleared {result['conversations_cleared']} conversations")
 
 For a complete working example that shows the entire workflow from documents → context scheduling → prompt building → inference, see:
 
-📄 **[examples/stateless_sglang_e2e.py](https://github.com/EfficientContext/ContextPilot/blob/main/examples/stateless_sglang_e2e.py)**
+📄 **[examples/stateless_sglang_e2e.py](https://github.com/EfficientContext/ContextPilot/tree/main/examples/stateless_sglang_e2e.py)**
+
+This example demonstrates:
+
+1. **Document Retrieval** - Simulated RAG retrieval of relevant documents
+2. **Context Tokenization** - Converting text to token IDs for scheduling
+3. **ContextPilot Scheduling** - Optimal ordering for prefix sharing
+4. **Prompt Building** - Constructing RAG prompts with context
+5. **Inference** - Batch inference in scheduled order (works with any OpenAI-compatible engine)
+6. **Result Reordering** - Mapping results back to original order
 
 ### Quick Preview
 

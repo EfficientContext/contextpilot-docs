@@ -1,7 +1,7 @@
 ---
 id: primitives
-title: Supported Primitives
-sidebar_label: Supported Primitives
+title: "Supported Primitives"
+sidebar_label: "Supported Primitives"
 ---
 
 # Supported Primitives

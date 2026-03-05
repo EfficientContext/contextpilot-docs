@@ -1,7 +1,7 @@
 ---
 id: benchmarks
-title: Benchmarks
-sidebar_label: Benchmarks
+title: "Benchmarks"
+sidebar_label: "Benchmarks"
 ---
 
 # Benchmarks
@@ -60,7 +60,7 @@ When integrated with SGLang or vLLM:
 | Prefill latency | **1.5-3.5x** reduction |
 | Accuracy | Maintained or improved |
 
-See the [GitHub repository](https://github.com/EfficientContext/ContextPilot) for accuracy benchmarks on MT-RAG.
+See the [main README](https://github.com/EfficientContext/ContextPilot/blob/main/README) for accuracy benchmarks on MT-RAG.
 
 ---
 
